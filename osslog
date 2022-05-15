@@ -1,0 +1,34 @@
+OSS: Generating process with local PID 1 and putting in queue 1 at time 0:172547900
+OSS: Dispatching process with local PID 1 and putting in queue 1 at time 0:172551292
+OSS: Message received from user 0
+OSS: Generating process with local PID 2 and putting in queue 1 at time 0:172551392
+OSS: Dispatching process with local PID 2 and putting in queue 1 at time 0:172553361
+OSS: Generating process with local PID 2 and putting in queue 1 at time 0:172553361
+OSS: Message received from user 1
+OSS: Generating process with local PID 3 and putting in queue 1 at time 0:172553461
+OSS: Dispatching process with local PID 3 and putting in queue 1 at time 0:172561449
+OSS: Generating process with local PID 3 and putting in queue 1 at time 0:172561449
+OSS: Generating process with local PID 1 and putting in queue 1 at time 0:172561449
+OSS: Message received from user 2
+OSS: Generating process with local PID 4 and putting in queue 1 at time 0:172561549
+OSS: Dispatching process with local PID 4 and putting in queue 1 at time 0:172562447
+OSS: Generating process with local PID 4 and putting in queue 1 at time 0:172562447
+OSS: Message received from user 3
+OSS: Generating process with local PID 5 and putting in queue 1 at time 0:172562547
+OSS: Dispatching process with local PID 5 and putting in queue 1 at time 0:172569524
+OSS: Generating process with local PID 5 and putting in queue 1 at time 0:172569524
+OSS: Message received from user 4
+OSS: Generating process with local PID 6 and putting in queue 1 at time 0:172569624
+OSS: Dispatching process with local PID 6 and putting in queue 1 at time 0:172572705
+OSS: Generating process with local PID 6 and putting in queue 1 at time 0:172572705
+OSS: Message received from user 5
+OSS: Generating process with local PID 7 and putting in queue 1 at time 0:172572805
+OSS: Dispatching process with local PID 7 and putting in queue 1 at time 0:172577648
+OSS: Generating process with local PID 7 and putting in queue 1 at time 0:172577648
+OSS: Message received from user 6
+OSS: Generating process with local PID 8 and putting in queue 1 at time 0:172577748
+OSS: Dispatching process with local PID 8 and putting in queue 1 at time 0:172585889
+OSS: Generating process with local PID 8 and putting in queue 1 at time 0:172585889
+OSS: Message received from user 7
+OSS: Generating process with local PID 9 and putting in queue 1 at time 0:172585989
+OSS: Generating process with local PID 9 and putting in queue 1 at time 0:172585989
