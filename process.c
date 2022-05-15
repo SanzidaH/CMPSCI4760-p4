@@ -10,13 +10,17 @@
 int main(int argc, char *argv[]){
 
     signal(SIGINT, signal_abort);
-    char lbuf2[200];
-    int procStartNS, procStartS; 
+    signal(SIGALRM, signal_abort);
+    signal(SIGTERM, signal_abort);
+    
+    alarm(3);
+    //char lbuf2[200];
+    //int procStartNS, procStartS; 
     int procid = atoi(argv[1]);
     bool terminate = false, block= false;
     struct msgbuf msgBuf;
 
-    printf("Process %d starts...\n", procid);
+    printf("Process %d starts...\n", procid+1);
    // sprintf(lbuf2,"Process %d starts...\n", procid);
     //logging(lbuf2);
     /* Creating a new shared memory segment */ 
@@ -30,6 +34,7 @@ int main(int argc, char *argv[]){
     
     if (clock_nsid == -1 || clock_sid == -1 || pct_id == -1){
         perror("process: Error: Shared memory allocation failed");
+        abort();
      // return 1;
     }
     
@@ -39,6 +44,7 @@ int main(int argc, char *argv[]){
 
     if (clock_ns == (void *) -1 || clock_s == (void *) -1 || pct_ptr == (void *) -1) {
        perror("process: Error: Shared memory attachment failed");
+       abort();
       //return 1;
     }
  
@@ -47,7 +53,8 @@ int main(int argc, char *argv[]){
     if (msgq_id == -1){
         perror("Process: Error: msgget failed\n");
         cleanAll();
-        exit(EXIT_SUCCESS);
+        //exit(EXIT_SUCCESS);
+        abort();
     }
 
     while(1){
@@ -59,6 +66,7 @@ int main(int argc, char *argv[]){
            //TODO tell OSS - increase cpu time for this process, last burst time, increase priority, add to block queue. 
         }
            //TODO time slice completed, increse CPU time one time slice
+        sleep(1);
         if (msgrcv(msgq_id, &msgBuf, sizeof(msgBuf.mtext), getpid(), 0) == -1){
             perror("Process: Error: msgrcv failed\n");
             cleanAll();
@@ -89,14 +97,14 @@ void increase_clock(int inc){
 }
 
 void signal_abort(){ 
-    perror("process: Warning: CTRL + C received, master is terminating");
-    pid_t current_pid = getpid();
-    kill(current_pid, SIGTERM);
-    for(int i = 0; i < MAXPROC; i++){
-		wait(NULL);
-	    }
-    //cleanAll();
-    exit(EXIT_SUCCESS);
+    //perror("process: Warning: CTRL + C received, master is terminating");
+
+    for (int p = 0; p < MAXPROC; p++) {
+        wait(NULL);}
+    perror("Process exits..");
+    kill(getpid(), SIGTERM);
+    cleanAll();
+    
     //abort();
     //exit(EXIT_FAILURE);
 }
@@ -105,7 +113,9 @@ void cleanAll(){
     if (shmdt(clock_ns) == -1 || shmdt(clock_s) == -1 || shmdt(pct_ptr) == -1) {
       perror("process: Error: shmdt failed to detach memory");
       abort();
-    }  
+    }
+    abort();
+    //exit(EXIT_SUCCESS);  
 }
 /*
 void logging(char * str){

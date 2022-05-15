@@ -9,7 +9,7 @@ MASTER = oss
 SLAVE = process
 HEADER = config
  
-all: $(MASTER) $(SLAVE) $(HEADER)
+all: $(MASTER) $(SLAVE)
  
 #$(MASTER): $(MASTER).o
 #	$(CC) $(CFLAGS) $(MASTER).c -o $(MASTER)

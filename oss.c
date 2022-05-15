@@ -13,24 +13,19 @@ struct PCB * pct_ptr = NULL;
 struct Queue * queue = NULL;//queue[0] blocked_queue, queue[1] - priority 1, queue[2] - priority 2, queue[3] - priority 3, queue[4] - priority 4
 char lbuf[500];
 int opt, nprocs = 20, terminate_time = 3, errno, pid = 0, forkedchild = 0, linenum = 0;
-
+unsigned int processScheduleNS;
 const unsigned int maxTimeBetweenNewProcsNS = TO_NANO;
 const unsigned int maxTimeBetweenNewProcsSecs = 1;
 
 int main(int argc, char *argv[]){
-
+   
     /* Interrupt signal handling */
     signal(SIGALRM, signal_timer);//Abort for end of termination time 
-    signal(SIGINT, signal_abort);// Abort for Ctrl+C  
+    signal(SIGINT, signal_abort);// Abort for Ctrl+C
+    signal(SIGTERM, signal_abort);  
     
     //signal(SIGALRM, cleanAll);//Abort for end of termination time 
     //signal(SIGINT, cleanAll);// Abort for Ctrl+C  
-    
-    allpid = malloc(sizeof(int) * MAXPROC);
-     /* Logging */
-    srand(time(NULL));
-    file = fopen("osslog", "w+");
-    fclose(file);
     
     /* Creating a new shared memory segment */ 
     clock_nsid = shmget(ftok("Makefile", '1'), sizeof(unsigned int), IPC_CREAT | 0666);
@@ -59,41 +54,57 @@ int main(int argc, char *argv[]){
     /* Setting System clock to zero */
     clock_ns[0] = 0;
     clock_s[0] = 0;
-	
     int localPidCount = 0;
-    unsigned int rIntervalS, rIntervalNS, processScheduleNS, currentNS;
+        /* Logging */
+    file = fopen("osslog", "a+");   
+    fprintf(file, "OSS starts...\n");
+    printf("OSS starts...\n");
+	
+    printf("alarm set for 3sec\n ");
+    fprintf(file, "alarm set for 3sec\n");
+    fclose(file);
     alarm(terminate_time);
-    //struct msgbuf msgBuf;
+    struct msgbuf msgBuf;
     for (int i = 0; i < MAXPROC; i++){    
     struct PCB tempProc = { 0.0, 0.0, 0.0, i, 1, false}; // initially priority 1
     pct_ptr[i] = tempProc; // Allocating and initializing PCB 
     }
+
+    srand(time(NULL));    
+
     
+    printf("OSS loop starts...\n");
     while (1){
-       while (clock_ns[0] + clock_s[0]*TO_NANO < terminate_time*TO_NANO || localPidCount< MAXPROC){                
-          increase_clock(100);
+         increase_clock(10000);
+ //      while (((clock_ns[0] + clock_s[0]*TO_NANO) < (terminate_time*TO_NANO)) && (localPidCount< MAXPROC)){                
           /* random intervals to spawn process */
          if(processScheduleNS == 0){
             processScheduleNS = (clock_ns[0]) + (clock_s[0] * TO_NANO) + (rand() % maxTimeBetweenNewProcsNS) + 1;
-         }          
+         }
+                  
         /* incrementing the clock until it is the time where it should launch a process. */
             //Hit time
              if((clock_ns[0] + clock_s[0]*TO_NANO) >= processScheduleNS && forkedchild < 50){ 
-             struct msgbuf msgBuf;
-
-
+             printf("Process schedule time hits : %d ns\n", processScheduleNS); 
+             file = fopen("osslog", "a+");
+             fprintf(file, "Process schedule time hits : %d ns\n", processScheduleNS);
+             fclose(file); 
+             //struct msgbuf msgBuf;
         /** Generating new process **/                                                             
-        pct_ptr[localPidCount].pid = fork();
-         sprintf(lbuf, "OSS: Generating process with local PID %d and putting in queue 1 at time %d:%d\n", localPidCount+1, clock_s[0], clock_ns[0]);
-         logging(lbuf);
+         pct_ptr[localPidCount].pid = fork();
+         //sprintf(lbuf, "OSS: Generating process with local PID %d and putting in queue 1 at time %d:%d\n", localPidCount+1, clock_s[0], clock_ns[0]);
+         //logging(lbuf);
          printf("OSS: Generating process with local PID %d and putting in queue 1 at time %d:%d\n", localPidCount+1, clock_s[0], clock_ns[0]);
+             file = fopen("osslog", "a+");
+             fprintf(file, "OSS: Generating process with local PID %d and putting in queue 1 at time %d:%d\n", localPidCount+1, clock_s[0], clock_ns[0]);
+             fclose(file); 
          /* Checking fork */
         if (pct_ptr[localPidCount].pid == -1){
              perror("OSS: Error: Failed to create a child process");
             abort();
         }
         if (pct_ptr[localPidCount].pid == 0){
-            char * procid = malloc(10*sizeof(char));
+            char * procid = malloc(10 * sizeof(char));
             sprintf(procid, "%d", localPidCount);
             execl("./process", "./process", procid, NULL);
         }
@@ -101,47 +112,57 @@ int main(int argc, char *argv[]){
              forkedchild++;
             //localPidCount++;
              pct_ptr[localPidCount].inUse = true;
-             allpid[localPidCount] = pct_ptr[localPidCount].pid;  
         }
         /* making message */
         msgBuf.mtype = pct_ptr[localPidCount].pid;
-        strcpy(msgBuf.mtext, "to userprocess\0");
-        int len = strlen(msgBuf.mtext);
-        bool flag = false;
-        if (msgsnd(msgq_id, &msgBuf, len+1, 0) == -1){
+        char str[15];
+        sprintf(str, "%d\0", localPidCount+1); // integer to string
+        strcpy(msgBuf.mtext, str);
+        if (msgsnd(msgq_id, &msgBuf, strlen(msgBuf.mtext)+1, 0) == -1){
             perror("OSS: Error: msgsnd failed\n");
             abort();
         }
                   int rdispatchNS = (rand() % (10000 - 100 + 1 )) + 100; // int num = (rand() % (upper - lower + 1)) + lower;
                   increase_clock(rdispatchNS);//time taken for scheduling process before launching              
+
                   //file = fopen("osslog", "a+"); 
                   //fprintf(lbuf, "OSS: Dispatching process with local PID %d", localPidCount); 
                  // fclose(file); 
                    //sprintf(lbuf, "OSS: Dispatching process %d\n", localPidCount); 
                    //file = fopen("osslog", "a+"); 
                    //fprintf(lbuf, "OSS: Dispatching process"); 
-                   //fclose(file); 
-                   flag = true;                  
+                   //fclose(file);                 
                   printf("OSS: Dispatching process with local PID %d and putting in queue 1 at time %d:%d\n", localPidCount+1, clock_s[0], clock_ns[0]); 
-                  sprintf(lbuf, "OSS: Dispatching process with local PID %d and putting in queue 1 at time %d:%d\n", localPidCount+1, clock_s[0], clock_ns[0]); 
+                  file = fopen("osslog", "a+");
+                  fprintf(file, "OSS: Dispatching process with local PID %d and putting in queue 1 at time %d:%d\n", localPidCount+1, clock_s[0], clock_ns[0]);
+                  fprintf(file, "OSS: total time this dispatch was %u nanoseconds\n", rdispatchNS);
+                  fclose(file);                  
+                  //sprintf(lbuf, "OSS: Dispatching process with local PID %d and putting in queue 1 at time %d:%d\n", localPidCount+1, clock_s[0], clock_ns[0]); 
                   //printf("OSS: Dispatching process with local PID %d and putting in queue %d at time %d:%d\n", localPidCount, clock_s[0], clock_ns[0]);
-                  logging(lbuf);
+                  //logging(lbuf);
+                  printf("OSS: total time this dispatch was %u nanoseconds\n", rdispatchNS);
+                  //sprintf(lbuf, "OSS: total time this dispatch was %u nanoseconds\n", rdispatchNS);
          
         /* receiving message */
+        // sleep(1);
         if (msgrcv(msgq_id, &msgBuf, sizeof(msgBuf.mtext), localPidCount, 0) == -1){
            perror("OSS: Error: msgrcv failed\n");
             abort();
         }
         char msg[100];
         strcpy(msg, msgBuf.mtext);
-        printf("OSS: Message received from user %d\n", localPidCount);
-        sprintf(lbuf,"OSS: Message received from user %d\n", localPidCount);
-        logging(lbuf);
+        printf("OSS:  Receiving message '%s' from user process %d\n", msg, localPidCount+1);
+        file = fopen("osslog", "a+");
+        fprintf(file, "OSS:  Receiving message '%s' from user process %d\n", msg, localPidCount+1);
+        fclose(file);                          
+        //sprintf(lbuf,"OSS: Message received from user %d\n", localPidCount);
+        //logging(lbuf);
        // sprintf("OSS: Message received from user %d\n", localPidCount);
          /* localpid increment */
         localPidCount++;
+        
        }
-      }
+     // }
     }
 
     cleanAll();
@@ -157,10 +178,14 @@ void increase_clock(int inc){
 }
 
 void cleanAll(){   
-    
-    sprintf(lbuf, "OSS: Cleaning and terminating ...");
-    logging(lbuf);
-    
+    printf("OSS: Cleaning and terminating ...\n");
+    file = fopen("osslog", "a+");
+    fprintf(file, "OSS:  Cleaning and terminating ...\n");
+    fclose(file); 
+    //sprintf(lbuf, "OSS: Cleaning and terminating ...");
+    //logging(lbuf);
+    for (int p = 0; p < MAXPROC; p++) {
+        wait(NULL);}
     if (shmdt(clock_ns) == -1 || shmdt(clock_s) == -1 || shmdt(pct_ptr) == -1) {
       perror("OSS: Error: shmdt failed to detach memory");
     }
@@ -176,14 +201,7 @@ void cleanAll(){
 
 void logging(char * str){
     file = fopen("osslog", "a+");   
-    linenum++;
-    if (linenum <= 10000){
-        fputs(str, file);
-    }
-    else{
-        printf("OSS: logfile exceeds 10000 line, terminating\n");
-        fputs("OSS: logfile exceeds 10000 line, terminating\n", file);       
-    }
+    fputs(str, file);
     fclose(file);
 }
 
